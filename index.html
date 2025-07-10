@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KelNest Planner</title>
+  <style>
+    /* Basic reset and dark mode */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+      color: #1a202c;
+      margin: 0; padding: 0;
+    }
+    .dark body {
+      background: #121212;
+      color: #e2e8f0;
+    }
+
+    /* No scrollbar for horizontal overflow */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+
+    /* Container */
+    #textOptions {
+      display: flex;
+      overflow-x: auto;
+      whitespace: nowrap;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background-color: #f0f4ff;
+      border-radius: 0.5rem;
+      box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.05);
+    }
+    .dark #textOptions {
+      background-color: #2d3748;
+      box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.3);
+    }
+
+    button {
+      padding: 0.3rem 0.7rem;
+      background-color: #4f46e5;
+      border: none;
+      border-radius: 0.3rem;
+      color: white;
+      cursor: pointer;
+      white-space: nowrap;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #4338ca;
+    }
+
+    /* Notes container */
+    #notesContainer {
+      margin: 1rem;
+      padding: 1rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.5rem;
+      min-height: 200px;
+      background-color: white;
+      overflow-y: auto;
+      outline: none;
+    }
+    .dark #notesContainer {
+      background-color: #1a202c;
+      border-color: #4a5568;
+      color: #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Text formatting toolbar with no scrollbar -->
+    <div id="textOptions" class="no-scrollbar">
+      <button onclick="formatText('bold')">Bold</button>
+      <button onclick="formatText('italic')">Italic</button>
+      <button onclick="formatText('underline')">Underline</button>
+      <button onclick="insertHeading(1)">H1</button>
+      <button onclick="insertHeading(2)">H2</button>
+      <button onclick="insertQuote()">Quote</button>
+      <button onclick="insertToggle()">Toggle</button>
+      <button onclick="undoText()">Undo</button>
+      <button onclick="redoText()">Redo</button>
+    </div>
+
+    <!-- Notes editing area -->
+    <div id="notesContainer" contenteditable="true" spellcheck="true" aria-label="Notes Container">
+      <p class="text-gray-400 dark:text-gray-500">Start writing your notes here...</p>
+    </div>
+
+    <!-- Save status -->
+    <div id="saveNoteStatus" style="margin-left:1rem; color: green; min-height: 20px;"></div>
+  </div>
+
+  <script>
+    // Your existing JavaScript functions, including formatText, undoText, redoText, insertHeading, insertQuote, insertToggle, saveNotes, etc.
+
+    // Example formatText function:
+    function formatText(command) {
+      document.execCommand(command, false, null);
+      document.getElementById('notesContainer').focus();
+    }
+
+    function undoText() {
+      document.execCommand('undo', false, null);
+      document.getElementById('notesContainer').focus();
+    }
+
+    function redoText() {
+      document.execCommand('redo', false, null);
+      document.getElementById('notesContainer').focus();
+    }
+
+    function insertHeading(level) {
+      document.execCommand('formatBlock', false, 'h' + level);
+      document.getElementById('notesContainer').focus();
+    }
+
+    function insertQuote() {
+      document.execCommand('formatBlock', false, 'blockquote');
+      document.getElementById('notesContainer').focus();
+    }
+
+    function insertToggle() {
+      const selection = window.getSelection();
+      if (selection.rangeCount === 0) {
+        document.getElementById('notesContainer').focus();
+        return;
+      }
+      const range = selection.getRangeAt(0);
+      const toggleDiv = document.createElement('div');
+      toggleDiv.className = 'toggle-block';
+      toggleDiv.innerHTML = `
+        <div class="toggle-header" onclick="toggleCollapse(this)" style="cursor:pointer; user-select:none;">
+          <span class="toggle-arrow">▶</span>
+          <span class="toggle-title" contenteditable="true">Toggle title</span>
+        </div>
+        <div class="toggle-content" style="display: none; margin-left: 1rem;">
+          <p contenteditable="true">Toggle content...</p>
+        </div>
+      `;
+
+      range.deleteContents();
+      range.insertNode(toggleDiv);
+      selection.removeAllRanges();
+      document.getElementById('notesContainer').focus();
+    }
+
+    function toggleCollapse(header) {
+      const content = header.nextElementSibling;
+      const arrow = header.querySelector('.toggle-arrow');
+      if (content && arrow) {
+        if (content.style.display === 'none') {
+          content.style.display = 'block';
+          arrow.textContent = '▼';
+        } else {
+          content.style.display = 'none';
+          arrow.textContent = '▶';
+        }
+      }
+    }
+
+    // Auto save notes every 2 seconds after input
+    const notesContainer = document.getElementById('notesContainer');
+    let saveTimeout;
+    notesContainer.addEventListener('input', () => {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveNotes, 2000);
+    });
+
+    function saveNotes() {
+      const notes = notesContainer.innerHTML;
+      localStorage.setItem('notes', notes);
+      const saveNoteStatus = document.getElementById('saveNoteStatus');
+      saveNoteStatus.textContent = 'Saved ✓';
+      setTimeout(() => {
+        saveNoteStatus.textContent = '';
+      }, 2000);
+    }
+
+    // Load saved notes on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedNotes = localStorage.getItem('notes');
+      if (savedNotes) {
+        notesContainer.innerHTML = savedNotes;
+      }
+    });
+  </script>
+</body>
+</html>
