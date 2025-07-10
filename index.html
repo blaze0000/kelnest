@@ -3,195 +3,148 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KelNest Planner</title>
+  <title>KelNest - Your Notion-style Planner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    /* Basic reset and dark mode */
-    body {
-      font-family: Arial, sans-serif;
-      background: #f9fafb;
-      color: #1a202c;
-      margin: 0; padding: 0;
-    }
-    .dark body {
-      background: #121212;
-      color: #e2e8f0;
-    }
-
-    /* No scrollbar for horizontal overflow */
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
-    }
-
-    /* Container */
-    #textOptions {
-      display: flex;
-      overflow-x: auto;
-      whitespace: nowrap;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background-color: #f0f4ff;
-      border-radius: 0.5rem;
-      box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.05);
-    }
-    .dark #textOptions {
-      background-color: #2d3748;
-      box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.3);
-    }
-
-    button {
-      padding: 0.3rem 0.7rem;
-      background-color: #4f46e5;
-      border: none;
-      border-radius: 0.3rem;
-      color: white;
-      cursor: pointer;
-      white-space: nowrap;
-      font-weight: 600;
-      transition: background-color 0.2s ease;
-    }
-    button:hover {
-      background-color: #4338ca;
-    }
-
-    /* Notes container */
     #notesContainer {
-      margin: 1rem;
-      padding: 1rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 0.5rem;
-      min-height: 200px;
-      background-color: white;
-      overflow-y: auto;
-      outline: none;
+      line-height: 1.6;
+      min-height: calc(100vh - 150px);
     }
-    .dark #notesContainer {
-      background-color: #1a202c;
-      border-color: #4a5568;
-      color: #e2e8f0;
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #6b7280;
     }
   </style>
 </head>
-<body>
-  <div id="app">
-    <!-- Text formatting toolbar with no scrollbar -->
-    <div id="textOptions" class="no-scrollbar">
-      <button onclick="formatText('bold')">Bold</button>
-      <button onclick="formatText('italic')">Italic</button>
-      <button onclick="formatText('underline')">Underline</button>
-      <button onclick="insertHeading(1)">H1</button>
-      <button onclick="insertHeading(2)">H2</button>
-      <button onclick="insertQuote()">Quote</button>
-      <button onclick="insertToggle()">Toggle</button>
-      <button onclick="undoText()">Undo</button>
-      <button onclick="redoText()">Redo</button>
-    </div>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-sans h-screen flex overflow-hidden">
 
-    <!-- Notes editing area -->
-    <div id="notesContainer" contenteditable="true" spellcheck="true" aria-label="Notes Container">
-      <p class="text-gray-400 dark:text-gray-500">Start writing your notes here...</p>
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+    <div class="p-6 flex items-center justify-between">
+      <h1 class="text-xl font-bold text-indigo-600 dark:text-indigo-400">KelNest 🪺</h1>
+      <button id="darkModeBtn" onclick="toggleDarkMode()" class="text-xl">🌙</button>
     </div>
+    <nav class="flex flex-col px-4 space-y-2">
+      <button id="tasksBtn" class="px-3 py-2 rounded text-left font-medium text-indigo-700 bg-indigo-100 dark:text-indigo-300 dark:bg-indigo-900">Tasks</button>
+      <button id="notesBtn" class="px-3 py-2 rounded text-left font-medium hover:bg-gray-100 dark:hover:bg-gray-700">Notes</button>
+    </nav>
+    <div class="p-4 text-xs text-gray-400 text-center border-t border-gray-200 dark:border-gray-700 mt-auto">
+      KelNest © 2025
+    </div>
+  </aside>
 
-    <!-- Save status -->
-    <div id="saveNoteStatus" style="margin-left:1rem; color: green; min-height: 20px;"></div>
-  </div>
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- Task Section -->
+    <section id="tasksSection" class="flex-1 overflow-auto p-6">
+      <h2 class="text-2xl font-semibold mb-4">🗓️ Tasks</h2>
+      <div class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-4 shadow">
+        <input
+          id="taskTitle"
+          type="text"
+          placeholder="What do you need to do?"
+          class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 mb-3"
+        />
+        <button id="addTaskBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Add Task</button>
+      </div>
+      <ul id="taskList" class="mt-6 space-y-3"></ul>
+    </section>
+
+    <!-- Notes Section -->
+    <section id="notesSection" class="hidden flex-1 overflow-auto p-6">
+      <h2 class="text-2xl font-semibold mb-4">📝 Notes</h2>
+      <div class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-4 shadow">
+        <div
+          id="notesContainer"
+          class="prose max-w-none dark:prose-invert min-h-[300px] focus:outline-none"
+          contenteditable="true"
+          spellcheck="false"
+        ></div>
+      </div>
+    </section>
+  </main>
 
   <script>
-    // Your existing JavaScript functions, including formatText, undoText, redoText, insertHeading, insertQuote, insertToggle, saveNotes, etc.
+    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    const taskList = document.getElementById('taskList');
+    const taskInput = document.getElementById('taskTitle');
 
-    // Example formatText function:
-    function formatText(command) {
-      document.execCommand(command, false, null);
-      document.getElementById('notesContainer').focus();
+    function renderTasks() {
+      taskList.innerHTML = '';
+      tasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = 'bg-white dark:bg-gray-700 p-3 rounded shadow flex justify-between items-center';
+        li.innerHTML = `
+          <span>${task}</span>
+          <button onclick="deleteTask(${index})" class="text-red-500 hover:text-red-700">🗑️</button>
+        `;
+        taskList.appendChild(li);
+      });
     }
 
-    function undoText() {
-      document.execCommand('undo', false, null);
-      document.getElementById('notesContainer').focus();
+    function addTask() {
+      const title = taskInput.value.trim();
+      if (!title) return;
+      tasks.push(title);
+      taskInput.value = '';
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      renderTasks();
     }
 
-    function redoText() {
-      document.execCommand('redo', false, null);
-      document.getElementById('notesContainer').focus();
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      renderTasks();
     }
 
-    function insertHeading(level) {
-      document.execCommand('formatBlock', false, 'h' + level);
-      document.getElementById('notesContainer').focus();
+    document.getElementById('addTaskBtn').addEventListener('click', addTask);
+    document.getElementById('taskTitle').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addTask();
+    });
+
+    document.getElementById('tasksBtn').onclick = () => {
+      document.getElementById('tasksSection').classList.remove('hidden');
+      document.getElementById('notesSection').classList.add('hidden');
     }
 
-    function insertQuote() {
-      document.execCommand('formatBlock', false, 'blockquote');
-      document.getElementById('notesContainer').focus();
+    document.getElementById('notesBtn').onclick = () => {
+      document.getElementById('notesSection').classList.remove('hidden');
+      document.getElementById('tasksSection').classList.add('hidden');
     }
 
-    function insertToggle() {
-      const selection = window.getSelection();
-      if (selection.rangeCount === 0) {
-        document.getElementById('notesContainer').focus();
-        return;
-      }
-      const range = selection.getRangeAt(0);
-      const toggleDiv = document.createElement('div');
-      toggleDiv.className = 'toggle-block';
-      toggleDiv.innerHTML = `
-        <div class="toggle-header" onclick="toggleCollapse(this)" style="cursor:pointer; user-select:none;">
-          <span class="toggle-arrow">▶</span>
-          <span class="toggle-title" contenteditable="true">Toggle title</span>
-        </div>
-        <div class="toggle-content" style="display: none; margin-left: 1rem;">
-          <p contenteditable="true">Toggle content...</p>
-        </div>
-      `;
-
-      range.deleteContents();
-      range.insertNode(toggleDiv);
-      selection.removeAllRanges();
-      document.getElementById('notesContainer').focus();
+    const darkModeBtn = document.getElementById('darkModeBtn');
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      darkModeBtn.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
     }
 
-    function toggleCollapse(header) {
-      const content = header.nextElementSibling;
-      const arrow = header.querySelector('.toggle-arrow');
-      if (content && arrow) {
-        if (content.style.display === 'none') {
-          content.style.display = 'block';
-          arrow.textContent = '▼';
-        } else {
-          content.style.display = 'none';
-          arrow.textContent = '▶';
-        }
-      }
-    }
-
-    // Auto save notes every 2 seconds after input
     const notesContainer = document.getElementById('notesContainer');
-    let saveTimeout;
+    notesContainer.innerHTML = localStorage.getItem('notes') || '';
     notesContainer.addEventListener('input', () => {
-      clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(saveNotes, 2000);
+      localStorage.setItem('notes', notesContainer.innerHTML);
     });
 
-    function saveNotes() {
-      const notes = notesContainer.innerHTML;
-      localStorage.setItem('notes', notes);
-      const saveNoteStatus = document.getElementById('saveNoteStatus');
-      saveNoteStatus.textContent = 'Saved ✓';
-      setTimeout(() => {
-        saveNoteStatus.textContent = '';
-      }, 2000);
-    }
-
-    // Load saved notes on page load
-    window.addEventListener('DOMContentLoaded', () => {
-      const savedNotes = localStorage.getItem('notes');
-      if (savedNotes) {
-        notesContainer.innerHTML = savedNotes;
-      }
-    });
+    renderTasks();
   </script>
 </body>
 </html>
