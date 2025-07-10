@@ -2,149 +2,201 @@
 <html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KelNest - Notion-Style Planner</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KelNest - Your Notion-style Planner</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif']
-          },
-          animation: {
-            fadeIn: 'fadeIn 0.5s ease-in-out',
-          },
-          keyframes: {
-            fadeIn: {
-              '0%': { opacity: 0 },
-              '100%': { opacity: 1 }
-            }
-          }
-        }
-      }
-    }
+    tailwind.config = { darkMode: 'class' };
   </script>
   <style>
-    ::-webkit-scrollbar {
-      height: 6px;
-      width: 6px;
+    /* Notes styling */
+    .toggle-block { margin: 16px 0; }
+    .toggle-header { cursor: pointer; user-select: none; transition: background-color 0.2s; }
+    .toggle-header:hover { background-color: #f3f4f6; }
+    .dark .toggle-header:hover { background-color: #374151; }
+    .toggle-arrow { transition: transform 0.2s; font-size: 14px; }
+    .toggle-content { transition: all 0.3s ease; }
+
+    #notesContainer { line-height: 1.6; min-height: calc(100vh - 200px); }
+    #notesContainer:focus { outline: none; }
+
+    #notesContainer img {
+      max-width: 100%;
+      height: auto;
+      margin: 16px 0;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
     }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 6px;
+    .dark #notesContainer img { border-color: #4b5563; }
+
+    #notesContainer blockquote {
+      border-left: 4px solid #d1d5db;
+      padding-left: 16px;
+      margin: 16px 0;
+      font-style: italic;
+      color: #6b7280;
     }
-    .task-block:focus-within {
-      border-color: #6366f1;
+    .dark #notesContainer blockquote {
+      border-left-color: #4b5563;
+      color: #9ca3af;
+    }
+
+    #notesContainer h1, #notesContainer h2, #notesContainer h3 {
+      font-weight: bold;
+      margin: 16px 0 8px 0;
+    }
+    #notesContainer h1 { font-size: 2rem; }
+    #notesContainer h2 { font-size: 1.5rem; }
+    #notesContainer h3 { font-size: 1.25rem; }
+
+    /* Hide scrollbar in toolbar */
+    .toolbar::-webkit-scrollbar {
+      display: none;
+    }
+    .toolbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
   </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-sans h-screen overflow-hidden">
+<body class="bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 flex h-screen overflow-hidden">
 
-<div class="flex h-full">
   <!-- Sidebar -->
-  <aside class="w-64 bg-white dark:bg-gray-800 p-6 border-r dark:border-gray-700">
-    <div class="flex items-center justify-between mb-8">
+  <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+    <div class="p-6 flex items-center justify-between">
       <h1 class="text-xl font-bold text-indigo-600 dark:text-indigo-400">KelNest 🪺</h1>
-      <button id="darkModeToggle" class="text-lg">🌙</button>
+      <button id="darkModeBtn" onclick="toggleDarkMode()" class="text-2xl hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">🌙</button>
     </div>
-    <nav class="space-y-4">
-      <button id="showTasks" class="w-full text-left px-4 py-2 rounded bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300">Tasks</button>
-      <button id="showNotes" class="w-full text-left px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">Notes</button>
+    <nav class="flex flex-col flex-grow px-4 space-y-4">
+      <button id="tasksBtn" class="px-3 py-2 rounded-md text-left font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none dark:text-indigo-300 dark:bg-indigo-900">Tasks</button>
+      <button id="notesBtn" class="px-3 py-2 rounded-md text-left font-medium hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">Notes</button>
     </nav>
+    <footer class="p-4 text-xs text-gray-400 border-t border-gray-200 dark:border-gray-700 text-center">
+      KelNest © 2025
+    </footer>
   </aside>
 
   <!-- Main Content -->
-  <main class="flex-1 flex flex-col overflow-hidden">
-
-    <!-- Toolbar (sticky) -->
-    <div id="notesToolbar" class="hidden sticky top-0 z-10 bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex-wrap gap-2 flex text-sm">
-      <button onclick="formatText('bold')" title="Bold" class="p-2 rounded bg-gray-100 dark:bg-gray-700">B</button>
-      <button onclick="formatText('italic')" title="Italic" class="p-2 rounded bg-gray-100 dark:bg-gray-700">I</button>
-      <button onclick="formatText('underline')" title="Underline" class="p-2 rounded bg-gray-100 dark:bg-gray-700">U</button>
-      <button onclick="insertHeading(1)" title="Heading 1" class="p-2 rounded bg-gray-100 dark:bg-gray-700">H1</button>
-      <button onclick="insertQuote()" title="Quote" class="p-2 rounded bg-gray-100 dark:bg-gray-700">❝</button>
-    </div>
-
+  <main class="flex-grow flex flex-col overflow-hidden">
+    
     <!-- Tasks Section -->
-    <section id="tasksSection" class="flex-1 overflow-y-auto p-6 space-y-4">
-      <h2 class="text-2xl font-semibold">🗂️ Task Board</h2>
-      <div id="taskList" class="space-y-2"></div>
-      <button onclick="addTask()" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">+ Add Task</button>
+    <section id="tasksSection" class="flex-grow flex flex-col overflow-hidden">
+      <div class="p-8 pb-4">
+        <h2 class="text-2xl font-semibold mb-4">🗓️ Tasks</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-md p-4 shadow border border-gray-300 dark:border-gray-600 mb-6 space-y-3">
+          <input id="taskTitle" type="text" placeholder="New Task..." class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white" />
+          <button id="addTaskBtn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none">Add Task</button>
+        </div>
+        <ul id="taskList" class="space-y-2"></ul>
+      </div>
     </section>
 
     <!-- Notes Section -->
-    <section id="notesSection" class="hidden flex-1 overflow-y-auto p-6">
-      <h2 class="text-2xl font-semibold mb-4">📝 Notes</h2>
-      <div contenteditable="true" id="notesArea" class="flex-1 bg-white dark:bg-gray-700 rounded p-4 border dark:border-gray-600 min-h-[300px] focus:outline-none"></div>
+    <section id="notesSection" class="hidden flex-grow flex flex-col overflow-hidden">
+      <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex flex-nowrap overflow-x-auto items-center gap-2 text-sm toolbar">
+          <button onclick="saveNote()" class="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">Save</button>
+          <button onclick="downloadNotes()" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Download</button>
+          <span id="saveStatus" class="text-sm"></span>
+
+          <button onclick="undoAction()" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded">↶ Undo</button>
+          <button onclick="redoAction()" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded">↷ Redo</button>
+
+          <button onclick="formatText('bold')" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded font-bold">B</button>
+          <button onclick="formatText('italic')" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded italic">I</button>
+          <button onclick="formatText('underline')" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded underline">U</button>
+
+          <button onclick="formatText('justifyLeft')" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded">⬅</button>
+          <button onclick="formatText('justifyCenter')" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded">⬌</button>
+          <button onclick="formatText('justifyRight')" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded">➡</button>
+
+          <button onclick="formatText('insertUnorderedList')" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded">• List</button>
+          <button onclick="insertHeading(2)" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded">H2</button>
+        </div>
+      </div>
+
+      <div class="flex-grow overflow-hidden p-8">
+        <h2 class="text-2xl font-semibold mb-4">📝 Notes</h2>
+        <div id="notesContainer" class="prose max-w-none bg-white dark:bg-gray-800 p-6 rounded-md border-0 min-h-full overflow-auto focus:outline-none" contenteditable="true" spellcheck="false"></div>
+      </div>
     </section>
-
   </main>
-</div>
 
-<script>
-  const tasks = JSON.parse(localStorage.getItem("kelnest_tasks") || "[]");
+  <script>
+    let darkMode = localStorage.getItem('darkMode') === 'true';
+    document.documentElement.classList.toggle('dark', darkMode);
+    document.getElementById('darkModeBtn').textContent = darkMode ? '☀️' : '🌙';
 
-  function renderTasks() {
-    const list = document.getElementById("taskList");
-    list.innerHTML = "";
-    tasks.forEach((task, i) => {
-      const div = document.createElement("div");
-      div.className = "task-block p-4 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-600 flex justify-between items-center";
-      div.innerHTML = `<input value="${task}" oninput="tasks[${i}]=this.value;saveTasks()" class="bg-transparent flex-1 outline-none text-lg" />
-        <button onclick="deleteTask(${i})" class="ml-4 text-red-500">🗑️</button>`;
-      list.appendChild(div);
-    });
-  }
+    document.getElementById('tasksBtn').onclick = () => {
+      document.getElementById('tasksSection').classList.remove('hidden');
+      document.getElementById('notesSection').classList.add('hidden');
+    };
+    document.getElementById('notesBtn').onclick = () => {
+      document.getElementById('notesSection').classList.remove('hidden');
+      document.getElementById('tasksSection').classList.add('hidden');
+    };
 
-  function addTask() {
-    tasks.push("New Task");
-    saveTasks();
-    renderTasks();
-  }
+    function toggleDarkMode() {
+      darkMode = !darkMode;
+      document.documentElement.classList.toggle('dark', darkMode);
+      localStorage.setItem('darkMode', darkMode);
+      document.getElementById('darkModeBtn').textContent = darkMode ? '☀️' : '🌙';
+    }
 
-  function deleteTask(index) {
-    tasks.splice(index, 1);
-    saveTasks();
-    renderTasks();
-  }
+    document.getElementById('addTaskBtn').onclick = () => {
+      const taskTitle = document.getElementById('taskTitle');
+      const value = taskTitle.value.trim();
+      if (!value) return;
 
-  function saveTasks() {
-    localStorage.setItem("kelnest_tasks", JSON.stringify(tasks));
-  }
+      const li = document.createElement('li');
+      li.className = 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-3 flex justify-between items-center';
+      li.innerHTML = `<span>${value}</span><button class="text-red-500" onclick="this.parentElement.remove()">🗑️</button>`;
+      document.getElementById('taskList').appendChild(li);
 
-  function formatText(command) {
-    document.execCommand(command, false, null);
-  }
+      taskTitle.value = '';
+    };
 
-  function insertHeading(level) {
-    document.execCommand("formatBlock", false, `h${level}`);
-  }
+    // Notes
+    const notesContainer = document.getElementById('notesContainer');
+    notesContainer.innerHTML = localStorage.getItem('kelnest_notes') || '';
 
-  function insertQuote() {
-    document.execCommand("formatBlock", false, "blockquote");
-  }
+    function saveNote() {
+      localStorage.setItem('kelnest_notes', notesContainer.innerHTML);
+      const status = document.getElementById('saveStatus');
+      status.textContent = 'Saved ✓';
+      setTimeout(() => status.textContent = '', 2000);
+    }
 
-  document.getElementById("darkModeToggle").onclick = () => {
-    document.documentElement.classList.toggle("dark");
-  };
+    function downloadNotes() {
+      const content = notesContainer.innerText;
+      const blob = new Blob([content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'notes.md';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
 
-  document.getElementById("showTasks").onclick = () => {
-    document.getElementById("tasksSection").classList.remove("hidden");
-    document.getElementById("notesSection").classList.add("hidden");
-    document.getElementById("notesToolbar").classList.add("hidden");
-  };
+    function formatText(command) {
+      document.execCommand(command, false, null);
+      notesContainer.focus();
+    }
 
-  document.getElementById("showNotes").onclick = () => {
-    document.getElementById("notesSection").classList.remove("hidden");
-    document.getElementById("tasksSection").classList.add("hidden");
-    document.getElementById("notesToolbar").classList.remove("hidden");
-  };
+    function undoAction() { document.execCommand('undo'); notesContainer.focus(); }
+    function redoAction() { document.execCommand('redo'); notesContainer.focus(); }
 
-  renderTasks();
-</script>
+    function insertHeading(level) {
+      const selection = window.getSelection();
+      if (!selection.rangeCount) return;
+      const range = selection.getRangeAt(0);
+      const heading = document.createElement('h' + level);
+      heading.textContent = 'Heading';
+      range.deleteContents();
+      range.insertNode(heading);
+    }
+  </script>
 </body>
 </html>
